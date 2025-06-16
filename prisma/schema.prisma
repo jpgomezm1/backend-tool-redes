@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TikTokPublication {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String
+  duration    Int?
+  hashtags    String[]
+  soundName   String?
+  soundTrending Boolean @default(false)
+  publishedAt DateTime
+  videoUrl    String?
+  thumbnailUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  metrics     TikTokMetrics[]
+  
+  @@map("tiktok_publications")
+}
+
+model TikTokMetrics {
+  id                String   @id @default(cuid())
+  publicationId     String
+  views             Int      @default(0)
+  likes             Int      @default(0)
+  comments          Int      @default(0)
+  shares            Int      @default(0)
+  engagementRate    Float    @default(0)
+  averageWatchTime  Float    @default(0)
+  viralScore        Int      @default(0)
+  soundInteractions Int      @default(0)
+  recordedAt        DateTime @default(now())
+  
+  publication TikTokPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  
+  @@map("tiktok_metrics")
+}
+
+model PlannedContent {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  contentType   String
+  hashtags      String[]
+  soundIdea     String?
+  scheduledDate DateTime
+  status        String
+  estimatedViews Int?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("planned_content")
+}
+
+model TikTokReferent {
+  id             String   @id @default(cuid())
+  url            String
+  username       String
+  followers      Int
+  avgViews       Int
+  engagementRate Float
+  niche          String
+  notes          String?
+  addedAt        DateTime @default(now())
+  
+  @@map("tiktok_referents")
+}

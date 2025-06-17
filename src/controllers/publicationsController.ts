@@ -1,6 +1,33 @@
+// src/controllers/publicationsController.ts
 import { Request, Response } from 'express';
+import multer from 'multer';
 import prisma from '../services/database';
 import { CreatePublicationRequest } from '../types';
+import { uploadFile, deleteFile } from '../services/storage';
+
+// Configurar multer para manejar archivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(null, false); // Cambié esto: cb(null, false) en lugar de cb(new Error(...), false)
+    }
+  }
+});
+
+export const uploadMiddleware = upload.single('scriptFile');
 
 export const getPublications = async (req: Request, res: Response) => {
     try {
@@ -14,25 +41,30 @@ export const getPublications = async (req: Request, res: Response) => {
         orderBy: { publishedAt: 'desc' }
       });
   
-      // Transformar los datos para que el frontend los entienda
-      // Transformar los datos para que el frontend los entienda
-const transformedPublications = publications.map(publication => ({
-    ...publication,
-    // Agregar campos que espera el frontend
-    date: publication.publishedAt,
-    thumbnail: publication.thumbnailUrl,
-    platform: 'tiktok', // valor por defecto
-    // Si hay métricas, usar la más reciente; si no, valores por defecto
-    metrics: publication.metrics[0] || {
-      views: 0,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      engagementRate: 0
-    },
-    // Mantener el array original para compatibilidad
-    metricsHistory: publication.metrics
-  }));
+      const transformedPublications = publications.map(publication => ({
+        ...publication,
+        // Agregar campos que espera el frontend
+        date: publication.publishedAt,
+        thumbnail: publication.thumbnailUrl,
+        platform: 'tiktok', // valor por defecto
+        // Si hay métricas, usar la más reciente; si no, valores por defecto
+        metrics: publication.metrics[0] || {
+          views: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          saves: 0,
+          engagementRate: 0
+        },
+        tiktokMetrics: {
+          averageWatchTime: publication.metrics[0]?.averageWatchTime || 0,
+          viralScore: publication.metrics[0]?.viralScore || 0,
+          soundInteractions: publication.metrics[0]?.soundInteractions || 0,
+          peakViewingHour: 16
+        },
+        // Mantener el array original para compatibilidad
+        metricsHistory: publication.metrics
+      }));
   
       res.json(transformedPublications);
     } catch (error) {
@@ -67,10 +99,35 @@ export const getPublicationById = async (req: Request, res: Response) => {
 
 export const createPublication = async (req: Request, res: Response) => {
   try {
-    const data: CreatePublicationRequest = req.body;
+    let data: CreatePublicationRequest;
+    
+    // Si hay archivo, los datos vienen en req.body.data como string
+    if (req.file) {
+      // Verificar si el archivo fue rechazado por el filtro
+      if (!req.file.mimetype.includes('pdf') && 
+          !req.file.mimetype.includes('msword') && 
+          !req.file.mimetype.includes('wordprocessingml') && 
+          !req.file.mimetype.includes('text/plain')) {
+        return res.status(400).json({ 
+          error: 'Tipo de archivo no permitido. Solo se aceptan PDF, Word y texto plano.' 
+        });
+      }
+      
+      try {
+        data = JSON.parse(req.body.data);
+      } catch (parseError) {
+        return res.status(400).json({ 
+          error: 'Datos inválidos en el formulario' 
+        });
+      }
+    } else {
+      data = req.body;
+    }
+    
+    const scriptFile = req.file;
     
     console.log('Datos recibidos en createPublication:', data);
-    console.log('publishedDate recibido:', data.publishedDate);
+    console.log('Archivo recibido:', scriptFile?.originalname);
     
     // Validar datos requeridos
     if (!data.title || !data.type) {
@@ -83,7 +140,6 @@ export const createPublication = async (req: Request, res: Response) => {
     let publishedDate: Date;
     if (data.publishedDate) {
       publishedDate = new Date(data.publishedDate);
-      // Si la fecha es inválida, usar la fecha actual
       if (isNaN(publishedDate.getTime())) {
         console.warn('Fecha inválida recibida, usando fecha actual');
         publishedDate = new Date();
@@ -93,7 +149,18 @@ export const createPublication = async (req: Request, res: Response) => {
       publishedDate = new Date();
     }
 
-    console.log('Fecha final a usar:', publishedDate);
+    let scriptUrl: string | undefined;
+    
+    // Si hay un archivo de guión, subirlo a GCS
+    if (scriptFile) {
+      try {
+        scriptUrl = await uploadFile(scriptFile);
+        console.log('Guión subido exitosamente:', scriptUrl);
+      } catch (uploadError) {
+        console.error('Error subiendo guión:', uploadError);
+        // No fallar la creación por esto, pero log el error
+      }
+    }
 
     const publication = await prisma.tikTokPublication.create({
       data: {
@@ -106,17 +173,21 @@ export const createPublication = async (req: Request, res: Response) => {
         soundTrending: data.soundTrending || false,
         publishedAt: publishedDate,
         videoUrl: data.videoUrl || '',
-        thumbnailUrl: data.thumbnailUrl || ''
+        thumbnailUrl: data.thumbnailUrl || '',
+        scriptUrl: scriptUrl
       }
     });
 
     console.log('Publicación creada exitosamente:', publication.id);
 
     // Si vienen métricas iniciales, crearlas
-    if (data.metrics && ((data.metrics.views || 0) + (data.metrics.likes || 0) + (data.metrics.comments || 0) + (data.metrics.shares || 0)) > 0) {
+    if (data.metrics && ((data.metrics.views || 0) + (data.metrics.likes || 0) + (data.metrics.comments || 0) + (data.metrics.shares || 0) + (data.metrics.saves || 0)) > 0) {
       console.log('Creando métricas iniciales:', data.metrics);
       
       try {
+        const totalEngagements = (data.metrics.likes || 0) + (data.metrics.comments || 0) + (data.metrics.shares || 0) + (data.metrics.saves || 0);
+        const engagementRate = (data.metrics.views || 0) > 0 ? (totalEngagements / (data.metrics.views || 1)) * 100 : 0;
+        
         await prisma.tikTokMetrics.create({
           data: {
             publicationId: publication.id,
@@ -124,16 +195,17 @@ export const createPublication = async (req: Request, res: Response) => {
             likes: data.metrics.likes || 0,
             comments: data.metrics.comments || 0,
             shares: data.metrics.shares || 0,
-            engagementRate: data.metrics.engagementRate || 0,
+            saves: data.metrics.saves || 0,
+            engagementRate: parseFloat(engagementRate.toFixed(2)),
             viralScore: data.tiktokMetrics?.viralScore || 0,
             averageWatchTime: data.tiktokMetrics?.averageWatchTime || 0,
+            soundInteractions: data.tiktokMetrics?.soundInteractions || 0,
             recordedAt: publishedDate
           }
         });
         console.log('Métricas iniciales creadas');
       } catch (metricsError) {
         console.error('Error creando métricas iniciales:', metricsError);
-        // No fallar la creación de la publicación por esto
       }
     }
 
@@ -147,7 +219,32 @@ export const createPublication = async (req: Request, res: Response) => {
 export const updatePublication = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const data: Partial<CreatePublicationRequest> = req.body;
+    let data: Partial<CreatePublicationRequest>;
+    
+    // Si hay archivo, los datos vienen en req.body.data como string
+    if (req.file) {
+      // Verificar si el archivo fue rechazado por el filtro
+      if (!req.file.mimetype.includes('pdf') && 
+          !req.file.mimetype.includes('msword') && 
+          !req.file.mimetype.includes('wordprocessingml') && 
+          !req.file.mimetype.includes('text/plain')) {
+        return res.status(400).json({ 
+          error: 'Tipo de archivo no permitido. Solo se aceptan PDF, Word y texto plano.' 
+        });
+      }
+      
+      try {
+        data = JSON.parse(req.body.data);
+      } catch (parseError) {
+        return res.status(400).json({ 
+          error: 'Datos inválidos en el formulario' 
+        });
+      }
+    } else {
+      data = req.body;
+    }
+    
+    const scriptFile = req.file;
 
     console.log('Actualizando publicación:', id, data);
 
@@ -183,6 +280,23 @@ export const updatePublication = async (req: Request, res: Response) => {
       }
     }
 
+    // Manejar archivo de guión
+    if (scriptFile) {
+      try {
+        // Si ya existía un guión, eliminarlo
+        if (existingPublication.scriptUrl) {
+          await deleteFile(existingPublication.scriptUrl);
+        }
+        
+        // Subir el nuevo guión
+        const scriptUrl = await uploadFile(scriptFile);
+        updateData.scriptUrl = scriptUrl;
+        console.log('Nuevo guión subido:', scriptUrl);
+      } catch (uploadError) {
+        console.error('Error subiendo nuevo guión:', uploadError);
+      }
+    }
+
     const publication = await prisma.tikTokPublication.update({
       where: { id },
       data: updateData
@@ -209,6 +323,16 @@ export const deletePublication = async (req: Request, res: Response) => {
 
     if (!existingPublication) {
       return res.status(404).json({ error: 'Publication not found' });
+    }
+
+    // Eliminar archivo de guión si existe
+    if (existingPublication.scriptUrl) {
+      try {
+        await deleteFile(existingPublication.scriptUrl);
+        console.log('Guión eliminado de GCS');
+      } catch (deleteError) {
+        console.error('Error eliminando guión:', deleteError);
+      }
     }
 
     // Eliminar métricas asociadas primero (si las hay)

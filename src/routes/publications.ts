@@ -1,18 +1,20 @@
+// src/routes/publications.ts
 import { Router } from 'express';
 import {
   getPublications,
   getPublicationById,
   createPublication,
   updatePublication,
-  deletePublication
+  deletePublication,
+  uploadMiddleware
 } from '../controllers/publicationsController';
 
 const router = Router();
 
 router.get('/', getPublications);
 router.get('/:id', getPublicationById);
-router.post('/', createPublication);
-router.put('/:id', updatePublication);
+router.post('/', uploadMiddleware, createPublication);
+router.put('/:id', uploadMiddleware, updatePublication);
 router.delete('/:id', deletePublication);
 
 export default router;

@@ -1,3 +1,4 @@
+// src/controllers/metricsController.ts
 import { Request, Response } from 'express';
 import prisma from '../services/database';
 import { UpdateMetricsRequest } from '../types';
@@ -11,8 +12,8 @@ export const addMetrics = async (req: Request, res: Response) => {
       console.log('Publication ID:', publicationId);
       console.log('Data recibida:', data);
   
-      // Calcular engagement rate
-      const totalEngagements = data.likes + data.comments + data.shares;
+      // Calcular engagement rate incluyendo saves
+      const totalEngagements = data.likes + data.comments + data.shares + data.saves;
       const engagementRate = data.views > 0 ? (totalEngagements / data.views) * 100 : 0;
   
       console.log('📈 Engagement calculado:', engagementRate);
@@ -24,6 +25,7 @@ export const addMetrics = async (req: Request, res: Response) => {
           likes: data.likes,
           comments: data.comments,
           shares: data.shares,
+          saves: data.saves,
           engagementRate: parseFloat(engagementRate.toFixed(2)),
           averageWatchTime: data.averageWatchTime,
           viralScore: data.viralScore,

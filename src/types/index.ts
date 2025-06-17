@@ -1,6 +1,6 @@
 // src/types/index.ts
 export interface CreatePublicationRequest {
-  title: string;
+  title?: string; // Hacer opcional para auto-generación
   description?: string;
   type: string;
   duration?: number;
@@ -9,9 +9,11 @@ export interface CreatePublicationRequest {
   soundTrending?: boolean;
   publishedDate: string;
   videoUrl?: string;
+  videoFile?: string; // Nueva propiedad
   thumbnailUrl?: string;
   scriptUrl?: string;
   platform?: string;
+  autoGenerateContent?: boolean; // Flag para análisis automático
   metrics?: {
     views?: number;
     likes?: number;

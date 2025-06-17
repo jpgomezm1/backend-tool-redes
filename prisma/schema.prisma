@@ -18,6 +18,7 @@ model TikTokPublication {
   soundTrending Boolean @default(false)
   publishedAt DateTime
   videoUrl    String?
+  videoFile   String?  // Nueva campo para el archivo de video
   thumbnailUrl String?
   scriptUrl   String?
   createdAt   DateTime @default(now())

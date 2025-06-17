@@ -47,3 +47,32 @@ export const deleteFile = async (fileUrl: string): Promise<void> => {
     console.error('Error deleting file:', error);
   }
 };
+
+// Agregar esta función al archivo existente
+export const uploadVideo = async (
+  file: Express.Multer.File,
+  folder: string = process.env.GOOGLE_CLOUD_STORAGE_FOLDER || 'Videos-TikTok'
+): Promise<string> => {
+  const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+  const fileUpload = bucket.file(fileName);
+
+  const stream = fileUpload.createWriteStream({
+    metadata: {
+      contentType: file.mimetype,
+    },
+    resumable: false,
+  });
+
+  return new Promise((resolve, reject) => {
+    stream.on('error', (error) => {
+      reject(error);
+    });
+
+    stream.on('finish', () => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+      resolve(publicUrl);
+    });
+
+    stream.end(file.buffer);
+  });
+};

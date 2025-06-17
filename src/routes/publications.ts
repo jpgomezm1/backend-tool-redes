@@ -6,7 +6,8 @@ import {
   createPublication,
   updatePublication,
   deletePublication,
-  uploadMiddleware
+  uploadMiddleware,
+  analyzeVideoOnly
 } from '../controllers/publicationsController';
 
 const router = Router();
@@ -16,5 +17,6 @@ router.get('/:id', getPublicationById);
 router.post('/', uploadMiddleware, createPublication);
 router.put('/:id', uploadMiddleware, updatePublication);
 router.delete('/:id', deletePublication);
+router.post('/analyze-video', uploadMiddleware, analyzeVideoOnly);
 
 export default router;

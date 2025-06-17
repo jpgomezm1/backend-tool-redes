@@ -3,23 +3,43 @@ import prisma from '../services/database';
 import { CreatePublicationRequest } from '../types';
 
 export const getPublications = async (req: Request, res: Response) => {
-  try {
-    const publications = await prisma.tikTokPublication.findMany({
-      include: {
-        metrics: {
-          orderBy: { recordedAt: 'desc' },
-          take: 1 // Solo la métrica más reciente
-        }
-      },
-      orderBy: { publishedAt: 'desc' }
-    });
-
-    res.json(publications);
-  } catch (error) {
-    console.error('Error fetching publications:', error);
-    res.status(500).json({ error: 'Error fetching publications' });
-  }
-};
+    try {
+      const publications = await prisma.tikTokPublication.findMany({
+        include: {
+          metrics: {
+            orderBy: { recordedAt: 'desc' },
+            take: 1 // Solo la métrica más reciente
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+  
+      // Transformar los datos para que el frontend los entienda
+      // Transformar los datos para que el frontend los entienda
+const transformedPublications = publications.map(publication => ({
+    ...publication,
+    // Agregar campos que espera el frontend
+    date: publication.publishedAt,
+    thumbnail: publication.thumbnailUrl,
+    platform: 'tiktok', // valor por defecto
+    // Si hay métricas, usar la más reciente; si no, valores por defecto
+    metrics: publication.metrics[0] || {
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      engagementRate: 0
+    },
+    // Mantener el array original para compatibilidad
+    metricsHistory: publication.metrics
+  }));
+  
+      res.json(transformedPublications);
+    } catch (error) {
+      console.error('Error fetching publications:', error);
+      res.status(500).json({ error: 'Error fetching publications' });
+    }
+  };
 
 export const getPublicationById = async (req: Request, res: Response) => {
   try {

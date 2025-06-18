@@ -1,17 +1,20 @@
 // src/services/videoAnalysis.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
+import os from 'os';
+import path from 'path';
 
 interface VideoAnalysisResult {
   success: boolean;
   titulo?: string;
   guion?: string;
   descripcion_corta?: string;
+  duracion_segundos?: number;        // ← Nuevo campo
   duracion_estimada?: string;
   temas_principales?: string[];
   tono?: string;
   elementos_visuales?: string[];
-  archivo_original?: string; // Agregado para evitar el error
+  archivo_original?: string;
   error?: string;
   raw_response?: string;
 }
@@ -29,12 +32,24 @@ export class VideoAnalyzerGemini {
     try {
       console.log(`📤 Subiendo video: ${fileName}`);
       
-      // Crear archivo temporal
-      const tempPath = `/tmp/${Date.now()}-${fileName}`;
+      // Usar directorio temporal del sistema operativo (funciona en Windows, Mac, Linux)
+      const tempPath = path.join(os.tmpdir(), `${Date.now()}-${fileName}`);
+      console.log(`📁 Ruta temporal: ${tempPath}`);
+      
       const fs = await import('fs');
+      
+      // Verificar que el directorio temporal existe
+      const tempDir = path.dirname(tempPath);
+      if (!fs.existsSync(tempDir)) {
+        console.log(`📁 Creando directorio temporal: ${tempDir}`);
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // Escribir el archivo
       fs.writeFileSync(tempPath, videoBuffer);
+      console.log(`✅ Archivo temporal creado: ${tempPath}`);
 
-      // Subir el archivo
+      // Subir el archivo a Gemini
       const uploadResult = await this.fileManager.uploadFile(tempPath, {
         mimeType: this.getMimeType(fileName),
         displayName: fileName,
@@ -59,7 +74,12 @@ export class VideoAnalyzerGemini {
       console.log(`\n✅ Video procesado exitosamente`);
       
       // Limpiar archivo temporal
-      fs.unlinkSync(tempPath);
+      try {
+        fs.unlinkSync(tempPath);
+        console.log(`🗑️ Archivo temporal eliminado: ${tempPath}`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ No se pudo eliminar archivo temporal: ${cleanupError}`);
+      }
       
       return file;
     } catch (error) {
@@ -79,20 +99,25 @@ export class VideoAnalyzerGemini {
        - Elementos visuales relevantes
        - Música o sonidos significativos
     3. **Descripción corta**: Una descripción concisa y atractiva para redes sociales (máximo 150 caracteres)
+    4. **Duración**: La duración exacta del video en segundos (número entero)
 
     Formato de respuesta requerido:
     {
         "titulo": "Título atractivo del video",
         "guion": "Transcripción detallada del contenido, acciones y diálogos del video...",
         "descripcion_corta": "Descripción breve y atractiva",
-        "duracion_estimada": "Duración aproximada del video",
+        "duracion_segundos": 45,
+        "duracion_estimada": "45 segundos",
         "temas_principales": ["tema1", "tema2", "tema3"],
         "tono": "descriptivo/gracioso/serio/educativo/etc",
         "elementos_visuales": ["elemento1", "elemento2"],
         "success": true
     }
 
-    Sé específico y detallado en el guion, capturando tanto el audio como los elementos visuales importantes.
+    IMPORTANTE: 
+    - La duración debe ser un número entero en segundos
+    - Sé específico y detallado en el guion, capturando tanto el audio como los elementos visuales importantes
+    - Asegúrate de que todos los campos estén presentes en la respuesta JSON
     `;
 
     try {
@@ -120,8 +145,10 @@ export class VideoAnalyzerGemini {
       if (jsonMatch) {
         try {
           const analysisResult = JSON.parse(jsonMatch[0]) as VideoAnalysisResult;
+          console.log("📊 Resultado parseado:", analysisResult);
           return analysisResult;
         } catch (parseError) {
+          console.error("❌ Error parseando JSON:", parseError);
           return {
             success: false,
             error: "Error parseando JSON",

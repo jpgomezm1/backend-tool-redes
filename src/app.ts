@@ -6,6 +6,8 @@ import metricsRoutes from './routes/metrics';
 import plannedContentRoutes from './routes/plannedContent';
 import referentsRoutes from './routes/referents';
 import analyticsRoutes from './routes/analytics';
+import accountMetricsRoutes from './routes/accountMetrics';
+import analyticsImagesRoutes from './routes/analyticsImages';
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/planned-content', plannedContentRoutes);
 app.use('/api/referents', referentsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/account-metrics', accountMetricsRoutes);
+app.use('/api/analytics-images', analyticsImagesRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -69,7 +73,12 @@ app.use('*', (req, res) => {
       'POST /api/publications',
       'GET /api/analytics/overview',
       'GET /api/planned-content',
-      'GET /api/referents'
+      'GET /api/referents',
+      'GET /api/account-metrics',
+      'POST /api/account-metrics',
+      'POST /api/analytics-images/profile',
+      'POST /api/analytics-images/viewers',
+      'POST /api/analytics-images/followers'
     ]
   });
 });

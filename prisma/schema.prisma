@@ -78,3 +78,68 @@ model TikTokReferent {
   
   @@map("tiktok_referents")
 }
+
+model TikTokAccountMetrics {
+  id                        String   @id @default(cuid())
+  
+  // Métricas de videos y perfil
+  videoViews                BigInt?
+  videoViewsChange          Float?
+  profileViews              BigInt?
+  profileViewsChange        Float?
+  
+  // Engagement
+  totalLikes                BigInt?
+  totalLikesChange          Float?
+  totalComments             BigInt?
+  totalCommentsChange       Float?
+  totalShares               BigInt?
+  totalSharesChange         Float?
+  
+  // Audiencia
+  totalViewers              BigInt?
+  totalViewersChange        Float?
+  newViewers                BigInt?
+  newViewersChange          Float?
+  totalFollowers            BigInt?
+  totalFollowersChange      Float?
+  netFollowers              BigInt?
+  netFollowersChange        Float?
+  
+  // Fuentes de tráfico (%)
+  forYouTrafficPercent      Float?
+  personalProfilePercent    Float?
+  searchTrafficPercent      Float?
+  followingTrafficPercent   Float?
+  soundTrafficPercent       Float?
+  
+  // Búsquedas (JSON con términos y porcentajes)
+  searchQueries             Json?     // [{"term": "dance", "percentage": 25.5}]
+  
+  // Demografía de género (%)
+  maleGenderPercent         Float?
+  femaleGenderPercent       Float?
+  otherGenderPercent        Float?
+  
+  // Rangos de edad (JSON)
+  ageRanges                 Json?     // [{"range": "18-24", "percentage": 45.2}]
+  
+  // Ubicaciones principales (JSON)
+  topLocations              Json?     // [{"location": "México", "type": "country", "percentage": 30.5}]
+  
+  // Horarios más activos (JSON)
+  mostActiveTimesViewers    Json?     // [{"hour": 20, "percentage": 15.5}]
+  mostActiveTimesFollowers  Json?     // [{"hour": 21, "percentage": 18.2}]
+  
+  // Creadores relacionados (JSON)
+  creatorsAlsoWatched       Json?     // [{"username": "@creator1", "followers": 1000000}]
+  
+  // Metadatos
+  recordedAt                DateTime @default(now())
+  periodStart               DateTime
+  periodEnd                 DateTime
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  
+  @@map("tiktok_account_metrics")
+}

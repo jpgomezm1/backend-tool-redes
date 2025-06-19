@@ -82,9 +82,8 @@ export const analyzeProfileImages = async (req: Request, res: Response) => {
 
     const accountMetrics = await prisma.tikTokAccountMetrics.create({
       data: {
-        // Profile analytics
+        // Profile analytics (solo los campos que existen en el esquema)
         profileViews: result.profile_views ? BigInt(result.profile_views) : undefined,
-        profileViewsChange: parsePercentage(result.profile_views_change),
         
         // Traffic sources
         forYouTrafficPercent: parsePercentage(result.traffic_source?.for_you),
@@ -158,11 +157,9 @@ export const analyzeViewerImages = async (req: Request, res: Response) => {
 
     const accountMetrics = await prisma.tikTokAccountMetrics.create({
       data: {
-        // Viewer stats
+        // Viewer stats (solo los campos que existen)
         totalViewers: result.total_viewers ? BigInt(result.total_viewers) : undefined,
-        totalViewersChange: parsePercentage(result.total_viewers_change),
         newViewers: result.new_viewers ? BigInt(result.new_viewers) : undefined,
-        newViewersChange: parsePercentage(result.new_viewers_change),
         
         // Demographics
         maleGenderPercent: parsePercentage(result.gender?.male),
@@ -238,11 +235,9 @@ export const analyzeFollowerImages = async (req: Request, res: Response) => {
 
     const accountMetrics = await prisma.tikTokAccountMetrics.create({
       data: {
-        // Follower stats
+        // Follower stats (solo los campos que existen)
         totalFollowers: result.total_followers ? BigInt(result.total_followers) : undefined,
-        totalFollowersChange: parsePercentage(result.total_followers_change),
         netFollowers: result.net_followers ? BigInt(result.net_followers) : undefined,
-        netFollowersChange: parsePercentage(result.net_followers_change),
         
         // Demographics
         maleGenderPercent: parsePercentage(result.gender?.male),

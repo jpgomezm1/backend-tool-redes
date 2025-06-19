@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import prisma from '../services/database';
-import { Prisma } from '@prisma/client';
 import { CreateAccountMetricsRequest } from '../types';
 
 export const getAccountMetrics = async (req: Request, res: Response) => {
@@ -17,9 +16,6 @@ export const getAccountMetrics = async (req: Request, res: Response) => {
       ...metric,
       videoViews: metric.videoViews?.toString(),
       profileViews: metric.profileViews?.toString(),
-      totalLikes: metric.totalLikes?.toString(),
-      totalComments: metric.totalComments?.toString(),
-      totalShares: metric.totalShares?.toString(),
       totalViewers: metric.totalViewers?.toString(),
       newViewers: metric.newViewers?.toString(),
       totalFollowers: metric.totalFollowers?.toString(),
@@ -48,9 +44,6 @@ export const getLatestAccountMetrics = async (req: Request, res: Response) => {
       ...latestMetrics,
       videoViews: latestMetrics.videoViews?.toString(),
       profileViews: latestMetrics.profileViews?.toString(),
-      totalLikes: latestMetrics.totalLikes?.toString(),
-      totalComments: latestMetrics.totalComments?.toString(),
-      totalShares: latestMetrics.totalShares?.toString(),
       totalViewers: latestMetrics.totalViewers?.toString(),
       newViewers: latestMetrics.newViewers?.toString(),
       totalFollowers: latestMetrics.totalFollowers?.toString(),
@@ -74,27 +67,13 @@ export const createAccountMetrics = async (req: Request, res: Response) => {
       data: {
         // Métricas básicas
         videoViews: data.videoViews ? BigInt(data.videoViews) : null,
-        videoViewsChange: data.videoViewsChange,
         profileViews: data.profileViews ? BigInt(data.profileViews) : null,
-        profileViewsChange: data.profileViewsChange,
-        
-        // Engagement
-        totalLikes: data.totalLikes ? BigInt(data.totalLikes) : null,
-        totalLikesChange: data.totalLikesChange,
-        totalComments: data.totalComments ? BigInt(data.totalComments) : null,
-        totalCommentsChange: data.totalCommentsChange,
-        totalShares: data.totalShares ? BigInt(data.totalShares) : null,
-        totalSharesChange: data.totalSharesChange,
         
         // Audiencia
         totalViewers: data.totalViewers ? BigInt(data.totalViewers) : null,
-        totalViewersChange: data.totalViewersChange,
         newViewers: data.newViewers ? BigInt(data.newViewers) : null,
-        newViewersChange: data.newViewersChange,
         totalFollowers: data.totalFollowers ? BigInt(data.totalFollowers) : null,
-        totalFollowersChange: data.totalFollowersChange,
         netFollowers: data.netFollowers ? BigInt(data.netFollowers) : null,
-        netFollowersChange: data.netFollowersChange,
         
         // Tráfico
         forYouTrafficPercent: data.forYouTrafficPercent,
@@ -103,11 +82,13 @@ export const createAccountMetrics = async (req: Request, res: Response) => {
         followingTrafficPercent: data.followingTrafficPercent,
         soundTrafficPercent: data.soundTrafficPercent,
         
-        // Datos complejos como JSON - usar undefined en lugar de null
-        searchQueries: data.searchQueries || undefined,
+        // Demografía
         maleGenderPercent: data.maleGenderPercent,
         femaleGenderPercent: data.femaleGenderPercent,
         otherGenderPercent: data.otherGenderPercent,
+        
+        // Datos complejos extraídos por Gemini
+        searchQueries: data.searchQueries || undefined,
         ageRanges: data.ageRanges || undefined,
         topLocations: data.topLocations || undefined,
         mostActiveTimesViewers: data.mostActiveTimesViewers || undefined,
@@ -125,9 +106,6 @@ export const createAccountMetrics = async (req: Request, res: Response) => {
       ...metrics,
       videoViews: metrics.videoViews?.toString(),
       profileViews: metrics.profileViews?.toString(),
-      totalLikes: metrics.totalLikes?.toString(),
-      totalComments: metrics.totalComments?.toString(),
-      totalShares: metrics.totalShares?.toString(),
       totalViewers: metrics.totalViewers?.toString(),
       newViewers: metrics.newViewers?.toString(),
       totalFollowers: metrics.totalFollowers?.toString(),
@@ -169,9 +147,6 @@ export const getAccountMetricsByPeriod = async (req: Request, res: Response) => 
       ...metric,
       videoViews: metric.videoViews?.toString(),
       profileViews: metric.profileViews?.toString(),
-      totalLikes: metric.totalLikes?.toString(),
-      totalComments: metric.totalComments?.toString(),
-      totalShares: metric.totalShares?.toString(),
       totalViewers: metric.totalViewers?.toString(),
       newViewers: metric.newViewers?.toString(),
       totalFollowers: metric.totalFollowers?.toString(),

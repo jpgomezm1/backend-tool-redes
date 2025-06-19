@@ -79,27 +79,13 @@ export interface MetricUpdate {
 export interface CreateAccountMetricsRequest {
   // Métricas básicas
   videoViews?: number;
-  videoViewsChange?: number;
   profileViews?: number;
-  profileViewsChange?: number;
-  
-  // Engagement
-  totalLikes?: number;
-  totalLikesChange?: number;
-  totalComments?: number;
-  totalCommentsChange?: number;
-  totalShares?: number;
-  totalSharesChange?: number;
   
   // Audiencia
   totalViewers?: number;
-  totalViewersChange?: number;
   newViewers?: number;
-  newViewersChange?: number;
   totalFollowers?: number;
-  totalFollowersChange?: number;
   netFollowers?: number;
-  netFollowersChange?: number;
   
   // Tráfico
   forYouTrafficPercent?: number;
@@ -108,11 +94,13 @@ export interface CreateAccountMetricsRequest {
   followingTrafficPercent?: number;
   soundTrafficPercent?: number;
   
-  // Datos complejos
-  searchQueries?: Array<{term: string, percentage: number}>;
+  // Demografía
   maleGenderPercent?: number;
   femaleGenderPercent?: number;
   otherGenderPercent?: number;
+  
+  // Datos complejos (extraídos por Gemini)
+  searchQueries?: Array<{term: string, percentage: number}>;
   ageRanges?: Array<{range: string, percentage: number}>;
   topLocations?: Array<{location: string, type: 'country' | 'city', percentage: number}>;
   mostActiveTimesViewers?: Array<{hour: number, percentage: number}>;
